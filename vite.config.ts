@@ -8,6 +8,10 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
+  preview: {
+    port: 8080,
+    host: true
+  },
   plugins: [
     react(),
   ],
@@ -39,7 +43,11 @@ export default defineConfig(({ mode }) => ({
     target: 'es2020',
     minify: 'terser',
     sourcemap: true,
+    outDir: 'dist',
+    assetsDir: 'assets',
+    emptyOutDir: true,
     rollupOptions: {
+      input: path.resolve(__dirname, 'index.html'),
       output: {
         manualChunks: {
           vendor: [
