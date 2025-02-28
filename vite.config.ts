@@ -14,8 +14,8 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "react": path.resolve(__dirname, "./node_modules/react"),
     },
+    dedupe: ['react', 'react-dom'],
   },
   optimizeDeps: {
     include: [
@@ -37,32 +37,26 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     target: 'es2020',
+    minify: 'terser',
+    sourcemap: true,
     rollupOptions: {
-      external: [
-        'firebase/app',
-        'firebase/auth',
-        'firebase/firestore',
-        'firebase/analytics',
-        'firebase/storage'
-      ],
       output: {
-        globals: {
-          'firebase/app': 'firebase',
-          'firebase/auth': 'firebaseAuth',
-          'firebase/firestore': 'firebaseFirestore',
-          'firebase/analytics': 'firebaseAnalytics',
-          'firebase/storage': 'firebaseStorage'
-        },
         manualChunks: {
-          react: ['react', 'react-dom'],
-          validation: ['yup', 'property-expr', 'tiny-case', 'toposort']
-        },
-      },
-    },
-    commonjsOptions: {
-      include: [/firebase/, /react/, /yup/, /property-expr/, /tiny-case/, /toposort/],
-      transformMixedEsModules: true,
-      esmExternals: true
+          vendor: [
+            'react',
+            'react-dom',
+            'firebase/app',
+            'firebase/auth',
+            'firebase/firestore',
+            'firebase/analytics',
+            'firebase/storage',
+            'yup',
+            'property-expr',
+            'tiny-case',
+            'toposort'
+          ]
+        }
+      }
     }
   },
 }));
