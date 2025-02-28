@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "react": path.resolve(__dirname, "./node_modules/react"),
     },
   },
   optimizeDeps: {
@@ -22,7 +23,13 @@ export default defineConfig(({ mode }) => ({
       'firebase/auth',
       'firebase/firestore',
       'firebase/analytics',
-      'firebase/storage'
+      'firebase/storage',
+      'react',
+      'react-dom',
+      'yup',
+      'property-expr',
+      'tiny-case',
+      'toposort'
     ]
   },
   build: {
@@ -37,12 +44,15 @@ export default defineConfig(({ mode }) => ({
             'firebase/analytics',
             'firebase/storage'
           ],
+          react: ['react', 'react-dom'],
+          validation: ['yup', 'property-expr', 'tiny-case', 'toposort']
         },
       },
     },
     commonjsOptions: {
-      include: [/firebase/],
-      transformMixedEsModules: true
+      include: [/firebase/, /react/, /yup/, /property-expr/, /tiny-case/, /toposort/],
+      transformMixedEsModules: true,
+      esmExternals: true
     }
   },
 }));
