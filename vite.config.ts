@@ -47,6 +47,7 @@ export default defineConfig(({ mode }) => ({
     outDir: 'dist',
     assetsDir: 'assets',
     emptyOutDir: true,
+    chunkSizeWarningLimit: 1600,
     rollupOptions: {
       input: path.resolve(__dirname, 'index.html'),
       output: {
@@ -59,11 +60,9 @@ export default defineConfig(({ mode }) => ({
             'firebase/firestore',
             'firebase/analytics',
             'firebase/storage',
-            'yup',
-            'property-expr',
-            'tiny-case',
-            'toposort'
-          ]
+          ],
+          form: ['yup', 'property-expr', 'tiny-case', 'toposort'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-label', '@radix-ui/react-slot', '@radix-ui/react-toast', '@radix-ui/react-tooltip']
         }
       }
     }

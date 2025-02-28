@@ -12,8 +12,18 @@ const PORT = process.env.PORT || 8080;
 // Enable gzip compression
 app.use(compression());
 
+// CORS headers
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  next();
+});
+
 // Serve static files from the dist directory
-app.use(express.static(join(__dirname, 'dist')));
+app.use(express.static(join(__dirname, 'dist'), {
+  maxAge: '1y',
+  etag: true,
+}));
 
 // Handle client-side routing
 app.get('*', (req, res) => {
