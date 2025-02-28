@@ -30,9 +30,13 @@ export default defineConfig(({ mode }) => ({
       'property-expr',
       'tiny-case',
       'toposort'
-    ]
+    ],
+    esbuildOptions: {
+      target: 'es2020'
+    }
   },
   build: {
+    target: 'es2020',
     rollupOptions: {
       external: [],
       output: {
