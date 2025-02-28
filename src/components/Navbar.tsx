@@ -1,14 +1,16 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ShoppingBag, Menu, X } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from "../context/AuthContext";
+import { Button } from "./ui/button";
 
 const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { totalItems, toggleCart } = useCart();
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -23,6 +25,14 @@ const Navbar: React.FC = () => {
     // Close mobile menu when route changes
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Failed to logout:", error);
+    }
+  };
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/90 shadow-sm backdrop-blur-md' : 'bg-transparent'}`}>
@@ -49,6 +59,7 @@ const Navbar: React.FC = () => {
           </nav>
 
           <div className="flex items-center space-x-4">
+            {/* Cart Button */}
             <button 
               onClick={toggleCart}
               className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
@@ -61,6 +72,30 @@ const Navbar: React.FC = () => {
                 </span>
               )}
             </button>
+
+            {/* Authentication Buttons */}
+            {user ? (
+              <Button
+                variant="ghost"
+                onClick={handleLogout}
+                className="font-medium transition-colors hover:text-primary"
+              >
+                Logout
+              </Button>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="ghost" className="font-medium transition-colors hover:text-primary">
+                    Login
+                  </Button>
+                </Link>
+                <Link to="/signup">
+                  <Button variant="default" className="bg-primary text-white hover:bg-primary/90">
+                    Sign up
+                  </Button>
+                </Link>
+              </>
+            )}
 
             {/* Mobile menu button */}
             <button 

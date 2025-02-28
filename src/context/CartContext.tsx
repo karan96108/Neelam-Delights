@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product } from '@/lib/products';
 import { toast } from '@/hooks/use-toast';
