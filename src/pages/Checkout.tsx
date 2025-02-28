@@ -1,19 +1,26 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/context/CartContext';
 import PaymentSection from '@/components/PaymentSection';
 import { ChevronRight, CheckCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { db } from '@/lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
+import { useAuth } from '@/context/AuthContext';
+import emailjs from '@emailjs/browser';
+
+// Initialize EmailJS with your public key
+emailjs.init("Co4fwBOIYegJ9kX_O");
 
 const Checkout = () => {
   const { items, totalPrice, clearCart } = useCart();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<'shipping' | 'payment' | 'confirmation'>('shipping');
   const [shippingInfo, setShippingInfo] = useState({
     firstName: '',
     lastName: '',
-    email: '',
+    email: user?.email || '',
     phone: '',
     address: '',
     city: '',
@@ -31,17 +38,128 @@ const Checkout = () => {
     window.scrollTo(0, 0);
   };
   
-  const handlePaymentComplete = () => {
-    setCurrentStep('confirmation');
-    clearCart();
-    window.scrollTo(0, 0);
+  const handlePaymentComplete = async () => {
+    try {
+      if (!user) {
+        throw new Error("Please log in to complete your order");
+      }
+
+      // Create order document in Firestore
+      const orderData = {
+        items: items.map(item => ({
+          name: item.product.name,
+          quantity: item.quantity,
+          price: item.product.price
+        })),
+        totalPrice: orderTotal,
+        shippingInfo,
+        orderDate: new Date().toISOString(),
+        userId: user.uid,
+        status: 'pending',
+        paymentStatus: 'pending'
+      };
+
+      // First create the order in Firestore
+      const orderRef = await addDoc(collection(db, 'orders'), orderData);
+      const orderId = orderRef.id;
+
+      // Then try to send emails
+      let emailError = null;
+      try {
+        // Send customer confirmation email
+        console.log('Attempting to send customer email with details:', {
+          serviceId: "service_szk4naq",
+          templateId: "template_ak5o9dt",
+          email: shippingInfo.email,
+          name: `${shippingInfo.firstName} ${shippingInfo.lastName}`,
+          orderId: orderId
+        });
+        
+        const customerEmailResult = await emailjs.send(
+          "service_szk4naq",
+          "template_ak5o9dt",
+          {
+            to_email: shippingInfo.email,
+            to_name: `${shippingInfo.firstName} ${shippingInfo.lastName}`,
+            order_id: orderId,
+            order_items: items.map(item => `${item.product.name} (${item.quantity}x) - ₹${item.product.price}`).join(", "),
+            total_amount: orderTotal,
+            shipping_address: `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.state} - ${shippingInfo.pincode}`,
+          }
+        );
+        console.log('Customer email sent successfully:', customerEmailResult);
+
+        // Send admin notification email
+        console.log('Attempting to send admin email with details:', {
+          serviceId: "service_szk4naq",
+          templateId: "template_n7sga9r",
+          orderId: orderId
+        });
+        
+        const adminEmailResult = await emailjs.send(
+          "service_szk4naq",
+          "template_n7sga9r",
+          {
+            order_id: orderId,
+            customer_name: `${shippingInfo.firstName} ${shippingInfo.lastName}`,
+            customer_email: shippingInfo.email,
+            customer_phone: shippingInfo.phone,
+            order_items: items.map(item => `${item.product.name} (${item.quantity}x) - ₹${item.product.price}`).join(", "),
+            total_amount: orderTotal,
+            shipping_address: `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.state} - ${shippingInfo.pincode}`,
+          }
+        );
+        console.log('Admin email sent successfully:', adminEmailResult);
+      } catch (error) {
+        console.error('Error sending emails:', error);
+        if (error instanceof Error) {
+          console.error('Detailed error information:', {
+            message: error.message,
+            name: error.name,
+            stack: error.stack,
+            serviceId: "service_szk4naq",
+            customerTemplateId: "template_ak5o9dt",
+            adminTemplateId: "template_n7sga9r"
+          });
+        }
+        emailError = error;
+      }
+
+      // Proceed with order completion regardless of email status
+      setCurrentStep('confirmation');
+      clearCart();
+      window.scrollTo(0, 0);
+
+      // Show appropriate toast message
+      if (emailError) {
+        toast({
+          title: "Order Placed Successfully",
+          description: `Your order #${orderId} has been placed, but there was an issue sending confirmation emails. Please save your order number for reference.`,
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "Order Placed Successfully",
+          description: "Your order has been placed and confirmation emails have been sent.",
+          variant: "default"
+        });
+      }
+
+    } catch (error) {
+      console.error('Error processing order:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to process your order. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
   const handleConfirmation = () => {
     navigate('/');
     toast({
       title: "Order completed",
-      description: "Thank you for shopping with us!",
+      description: "Thank you for shopping with us! You will receive an email confirmation shortly.",
     });
   };
   
@@ -237,9 +355,20 @@ const Checkout = () => {
                 </div>
               </div>
               
-              <div className="flex justify-between pt-4">
-                <span className="text-lg font-medium">Total</span>
-                <span className="text-lg font-bold">₹{orderTotal.toFixed(2)}</span>
+              <div className="space-y-2 pt-2 pb-4 border-b border-gray-100">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Total</span>
+                  <span className="font-medium">₹{orderTotal.toFixed(2)}</span>
+                </div>
+              </div>
+              
+              <div className="mt-6">
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
+                >
+                  Complete Order
+                </button>
               </div>
             </div>
           </div>
@@ -321,48 +450,58 @@ const Checkout = () => {
       )}
       
       {currentStep === 'confirmation' && (
-        <div className="max-w-2xl mx-auto text-center">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-8">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="h-8 w-8 text-green-600" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+              <h2 className="text-2xl font-serif font-semibold mb-6">Order Confirmation</h2>
+              <p className="text-gray-600 mb-8">Thank you for your order! We'll send you an email with your order details shortly.</p>
+              <button
+                onClick={handleConfirmation}
+                className="px-6 py-3 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
+              >
+                Return to Home
+              </button>
             </div>
-            
-            <h2 className="text-2xl font-serif font-semibold mb-2">Order Confirmed!</h2>
-            <p className="text-gray-600 mb-8">Your order has been placed successfully. We've sent a confirmation email to {shippingInfo.email}.</p>
-            
-            <div className="mb-8 p-6 bg-gray-50 rounded-md border border-gray-200 text-left">
-              <div className="flex flex-col sm:flex-row justify-between mb-4 pb-4 border-b border-gray-200">
-                <div>
-                  <p className="text-sm text-gray-500">Order Number</p>
-                  <p className="font-medium">#ND{Math.floor(100000 + Math.random() * 900000)}</p>
+          </div>
+          
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 sticky top-6">
+              <h2 className="text-xl font-serif font-semibold mb-4">Order Summary</h2>
+              <div className="space-y-3 mb-4">
+                {items.map((item) => (
+                  <div key={item.product.id} className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <div className="flex items-center">
+                      <div className="w-12 h-12 rounded overflow-hidden border border-gray-200 flex-shrink-0">
+                        <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm font-medium">{item.product.name}</p>
+                        <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                      </div>
+                    </div>
+                    <p className="font-medium">₹{(item.product.price * item.quantity).toFixed(2)}</p>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="space-y-2 pt-2 pb-4 border-b border-gray-100">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Subtotal</span>
+                  <span className="font-medium">₹{totalPrice.toFixed(2)}</span>
                 </div>
-                <div className="mt-4 sm:mt-0">
-                  <p className="text-sm text-gray-500">Expected Delivery</p>
-                  <p className="font-medium">
-                    {new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', { 
-                      day: 'numeric', 
-                      month: 'long', 
-                      year: 'numeric'
-                    })}
-                  </p>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Shipping</span>
+                  <span className="font-medium">{shippingCost === 0 ? 'Free' : `₹${shippingCost.toFixed(2)}`}</span>
                 </div>
               </div>
               
-              <div>
-                <p className="text-sm text-gray-500">Shipping Address</p>
-                <p className="font-medium">{shippingInfo.firstName} {shippingInfo.lastName}</p>
-                <p>{shippingInfo.address}</p>
-                <p>{shippingInfo.city}, {shippingInfo.state} - {shippingInfo.pincode}</p>
-                <p>Phone: {shippingInfo.phone}</p>
+              <div className="space-y-2 pt-2 pb-4 border-b border-gray-100">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Total</span>
+                  <span className="font-medium">₹{orderTotal.toFixed(2)}</span>
+                </div>
               </div>
             </div>
-            
-            <button
-              onClick={handleConfirmation}
-              className="px-6 py-3 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
-            >
-              Continue Shopping
-            </button>
           </div>
         </div>
       )}

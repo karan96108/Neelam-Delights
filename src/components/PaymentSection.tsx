@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { CreditCard, CheckCircle2, ShieldCheck, CreditCardIcon } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -56,13 +55,37 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({ onPaymentComplete, tota
     setCvv(value);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
     
-    // Simulate payment processing
-    setTimeout(() => {
-      setIsProcessing(false);
+    try {
+      // For COD, no payment validation needed
+      if (paymentMethod === 'cod') {
+        toast({
+          title: "Order Confirmed",
+          description: "Your Cash on Delivery order has been placed successfully!",
+        });
+        onPaymentComplete();
+        return;
+      }
+
+      // Validate card details for card payment
+      if (paymentMethod === 'card') {
+        if (!cardNumber || !cardName || !expiry || !cvv) {
+          throw new Error("Please fill in all card details");
+        }
+      }
+
+      // Validate UPI ID for UPI payment
+      if (paymentMethod === 'upi') {
+        if (!upiId) {
+          throw new Error("Please enter your UPI ID");
+        }
+      }
+
+      // Simulate payment processing
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       toast({
         title: "Payment successful",
@@ -70,7 +93,16 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({ onPaymentComplete, tota
       });
       
       onPaymentComplete();
-    }, 2000);
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast({
+        title: "Payment Failed",
+        description: error instanceof Error ? error.message : "Failed to process payment. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
