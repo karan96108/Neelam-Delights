@@ -38,16 +38,22 @@ export default defineConfig(({ mode }) => ({
   build: {
     target: 'es2020',
     rollupOptions: {
-      external: [],
+      external: [
+        'firebase/app',
+        'firebase/auth',
+        'firebase/firestore',
+        'firebase/analytics',
+        'firebase/storage'
+      ],
       output: {
+        globals: {
+          'firebase/app': 'firebase',
+          'firebase/auth': 'firebaseAuth',
+          'firebase/firestore': 'firebaseFirestore',
+          'firebase/analytics': 'firebaseAnalytics',
+          'firebase/storage': 'firebaseStorage'
+        },
         manualChunks: {
-          firebase: [
-            'firebase/app',
-            'firebase/auth',
-            'firebase/firestore',
-            'firebase/analytics',
-            'firebase/storage'
-          ],
           react: ['react', 'react-dom'],
           validation: ['yup', 'property-expr', 'tiny-case', 'toposort']
         },
