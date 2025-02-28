@@ -7,13 +7,13 @@ export default defineConfig({
   base: '/',
   plugins: [react()],
   server: {
-    port: 8080,
-    host: true,
+    port: Number(process.env.PORT) || 8080,
+    host: '0.0.0.0',
     strictPort: true
   },
   preview: {
-    port: 8080,
-    host: true,
+    port: Number(process.env.PORT) || 8080,
+    host: '0.0.0.0',
     strictPort: true
   },
   resolve: {
