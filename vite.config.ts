@@ -17,16 +17,32 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    include: ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/analytics']
+    include: [
+      'firebase/app',
+      'firebase/auth',
+      'firebase/firestore',
+      'firebase/analytics',
+      'firebase/storage'
+    ]
   },
   build: {
     rollupOptions: {
       external: [],
       output: {
         manualChunks: {
-          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/analytics'],
+          firebase: [
+            'firebase/app',
+            'firebase/auth',
+            'firebase/firestore',
+            'firebase/analytics',
+            'firebase/storage'
+          ],
         },
       },
     },
+    commonjsOptions: {
+      include: [/firebase/],
+      transformMixedEsModules: true
+    }
   },
 }));
