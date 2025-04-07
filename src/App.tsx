@@ -21,6 +21,7 @@ import Checkout from "./pages/Checkout";
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import { useAuth } from './context/AuthContext';
+import SaffronAnimation from './components/SaffronAnimation';
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
       <CartProvider>
         <AuthProvider>
           <Router>
+            <SaffronAnimation />
             <div className="flex flex-col min-h-screen">
               <Navbar />
               <main className="flex-grow">
