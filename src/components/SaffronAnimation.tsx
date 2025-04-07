@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
+import saffronImage from '../../Images/Saffron.png';
 
 const Container = styled.div`
   position: fixed;
@@ -14,10 +15,12 @@ const Container = styled.div`
 
 const Strand = styled.div<{ left: number; delay: number; duration: number }>`
   position: absolute;
-  width: 2px;
+  width: 30px;
   height: 30px;
-  background: linear-gradient(to bottom, #FF9933, #FF5722);
-  border-radius: 2px;
+  background-image: url(${saffronImage});
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
   left: ${props => props.left}%;
   top: -30px;
   animation: float ${props => props.duration}s linear ${props => props.delay}s infinite;
