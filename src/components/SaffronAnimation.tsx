@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import saffronImage from '../../Images/Saffron.png';
 
-const Container = styled.div`
+const Container = styled.div<{ isVisible: boolean }>`
   position: fixed;
   top: 0;
   left: 0;
@@ -11,18 +11,20 @@ const Container = styled.div`
   pointer-events: none;
   z-index: 1000;
   overflow: hidden;
+  opacity: ${props => props.isVisible ? 1 : 0};
+  transition: opacity 0.5s ease-out;
 `;
 
 const Strand = styled.div<{ left: number; delay: number; duration: number }>`
   position: absolute;
-  width: 30px;
-  height: 30px;
+  width: 40px;
+  height: 40px;
   background-image: url(${saffronImage});
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
   left: ${props => props.left}%;
-  top: -30px;
+  top: -40px;
   animation: float ${props => props.duration}s linear ${props => props.delay}s infinite;
   opacity: 0.7;
   transform-origin: center;
@@ -46,7 +48,9 @@ const Strand = styled.div<{ left: number; delay: number; duration: number }>`
 const SaffronAnimation: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [strands, setStrands] = React.useState<Array<{ left: number; delay: number; duration: number }>>([]);
-  const [showAnimation, setShowAnimation] = useState(true);
+  const [isVisible, setIsVisible] = useState(true);
+  const strandIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastScrollY = useRef(0);
 
   useEffect(() => {
     // Create initial strands
@@ -58,7 +62,7 @@ const SaffronAnimation: React.FC = () => {
     setStrands(initialStrands);
 
     // Add new strands periodically
-    const interval = setInterval(() => {
+    strandIntervalRef.current = setInterval(() => {
       setStrands(prev => {
         const newStrands = [...prev];
         if (newStrands.length < 50) {
@@ -72,21 +76,36 @@ const SaffronAnimation: React.FC = () => {
       });
     }, 1000);
 
-    // Hide animation after 10 seconds
-    const timeout = setTimeout(() => {
-      setShowAnimation(false);
-    }, 10000);
+    // Handle scroll events
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // If scrolling down and not already hidden
+      if (currentScrollY > lastScrollY.current && isVisible) {
+        setIsVisible(false);
+        // Clear the strand interval after fade out
+        setTimeout(() => {
+          if (strandIntervalRef.current) {
+            clearInterval(strandIntervalRef.current);
+          }
+        }, 500);
+      }
+      
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll);
 
     return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
+      if (strandIntervalRef.current) {
+        clearInterval(strandIntervalRef.current);
+      }
+      window.removeEventListener('scroll', handleScroll);
     };
-  }, []);
-
-  if (!showAnimation) return null;
+  }, [isVisible]);
 
   return (
-    <Container ref={containerRef}>
+    <Container ref={containerRef} isVisible={isVisible}>
       {strands.map((strand, index) => (
         <Strand
           key={index}
